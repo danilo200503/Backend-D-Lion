@@ -1,0 +1,209 @@
+
+
+
+
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  cnpj      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  fiscalDocuments FiscalDocument[]
+  clientes        Cliente[]
+  cobrancas       Cobranca[]
+
+  @@map("companies")
+}
+
+model User {
+  id          String    @id @default(uuid())
+  nome        String
+  email       String    @unique
+  senhaHash   String
+  companyId   String
+  cargo       String?
+  telefone    String?
+  avatar      String?
+  ativo       Boolean   @default(true)
+  ultimoLogin DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  userRoles     UserRole[]
+  refreshTokens RefreshToken[]
+  fiscalDocuments FiscalDocument[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  nome        String   @unique
+  descricao   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+
+model FiscalDocument {
+  id             String   @id @default(uuid())
+  companyId      String
+  uploadedById   String
+  nomeArquivo    String
+  caminhoArquivo String
+  status         String   @default("PROCESSANDO") 
+  tipoDocumento  String? 
+  empresa        String?
+  cnpj           String?
+  numeroNota     String?
+  serie          String?
+  chaveAcesso    String?
+  dataEmissao    DateTime?
+  destinatario   String?
+  destinatarioCnpj String?
+  destinatarioUf String?
+  municipio      String?
+  uf             String?
+  indicadorIE    String?
+  valorTotal     Float?
+  impostos       Json?
+  itens          Json? 
+  erros          Json?
+  alertas        Json?
+  recomendacoes  Json?
+  mensagemErro   String?
+  scoreFiscal    Int?
+  classificacao  String? 
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company    Company @relation(fields: [companyId], references: [id])
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
+  analises   FiscalAnalysis[]
+
+  @@map("fiscal_documents")
+}
+
+model FiscalAnalysis {
+  id           String   @id @default(uuid())
+  documentId   String
+  companyId    String
+  scoreFiscal  Int
+  classificacao String
+  erros        Json 
+  totalErros   Int
+  createdAt    DateTime @default(now())
+
+  document FiscalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("fiscal_analyses")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+
+enum StatusCobranca {
+  PENDENTE
+  ENVIADA
+  PAGA
+  ATRASADA
+}
+
+
+enum TipoEnvioCobranca {
+  EMAIL
+  WHATSAPP
+}
+
+
+model Cliente {
+  id        String   @id @default(uuid())
+  companyId String
+  nome      String
+  empresa   String?
+  cpfCnpj   String?
+  email     String?
+  telefone  String?
+  criadoEm  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  cobrancas  Cobranca[]
+
+  @@map("clientes")
+}
+
+
+model Cobranca {
+  id          String         @id @default(uuid())
+  companyId   String
+  clienteId   String
+  descricao   String
+  valor       Float?
+  vencimento  DateTime
+  status      StatusCobranca @default(PENDENTE)
+  dataEnvio   DateTime?
+  criadoEm    DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  company Company         @relation(fields: [companyId], references: [id])
+  cliente Cliente         @relation(fields: [clienteId], references: [id])
+  historico BillingHistory[]
+
+  @@map("cobrancas")
+}
+
+
+model BillingHistory {
+  id         String            @id @default(uuid())
+  cobrancaId String
+  tipoEnvio  TipoEnvioCobranca
+  dataEnvio  DateTime          @default(now())
+
+  cobranca Cobranca @relation(fields: [cobrancaId], references: [id], onDelete: Cascade)
+
+  @@map("billing_history")
+}
