@@ -40,11 +40,11 @@ export class AuthService {
     this.logger.log(`Novo usuário cadastrado: ${usuario.email}`, 'AuthService');
 
     if (usuario.tokenVerificacaoEmail) {
-      await this.emailService.enviarVerificacaoEmail(
-        usuario.email,
-        usuario.nome,
-        usuario.tokenVerificacaoEmail,
-      );
+      this.emailService
+        .enviarVerificacaoEmail(usuario.email, usuario.nome, usuario.tokenVerificacaoEmail)
+        .catch((erro: Error) =>
+          this.logger.warn(`Falha ao enviar e-mail de verificação para ${usuario.email}: ${erro.message}`),
+        );
     }
 
     return { email: usuario.email, emailVerificado: usuario.emailVerificado };
@@ -59,22 +59,22 @@ export class AuthService {
   async reenviarVerificacao(email: string): Promise<void> {
     const usuario = await this.usersService.gerarNovoTokenVerificacao(email);
     if (usuario.tokenVerificacaoEmail) {
-      await this.emailService.enviarVerificacaoEmail(
-        usuario.email,
-        usuario.nome,
-        usuario.tokenVerificacaoEmail,
-      );
+      this.emailService
+        .enviarVerificacaoEmail(usuario.email, usuario.nome, usuario.tokenVerificacaoEmail)
+        .catch((erro: Error) =>
+          this.logger.warn(`Falha ao reenviar e-mail de verificação para ${usuario.email}: ${erro.message}`),
+        );
     }
   }
 
   async esqueciSenha(email: string): Promise<void> {
     const usuario = await this.usersService.gerarTokenResetSenha(email);
     if (usuario && usuario.tokenResetSenha) {
-      await this.emailService.enviarRedefinicaoSenha(
-        usuario.email,
-        usuario.nome,
-        usuario.tokenResetSenha,
-      );
+      this.emailService
+        .enviarRedefinicaoSenha(usuario.email, usuario.nome, usuario.tokenResetSenha)
+        .catch((erro: Error) =>
+          this.logger.warn(`Falha ao enviar e-mail de redefinição de senha para ${usuario.email}: ${erro.message}`),
+        );
     }
   }
 

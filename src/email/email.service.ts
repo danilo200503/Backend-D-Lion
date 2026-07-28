@@ -26,6 +26,9 @@ export class EmailService {
           user: this.configService.smtpUser,
           pass: this.configService.smtpPass,
         },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 8000,
       });
     }
   }

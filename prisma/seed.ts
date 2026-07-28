@@ -41,7 +41,12 @@ async function seedAdminUser(companyId: string): Promise<void> {
   const email = 'admin@dlion.com';
 
   const existente = await prisma.user.findUnique({ where: { email } });
+
   if (existente) {
+    await prisma.user.update({
+      where: { id: existente.id },
+      data: { emailVerificado: true, ativo: true },
+    });
     return;
   }
 
