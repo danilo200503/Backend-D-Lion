@@ -6,9 +6,11 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { v4 as uuidv4 } from 'uuid';
 import { AppConfigService } from '../config/app-config.service';
 import { PrismaService } from '../database/prisma.service';
+import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
 import { UserWithRoles } from '../users/interfaces/user-with-roles.interface';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { RegisterResponseDto } from './dto/register-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload, TokenPair } from './interfaces/jwt-payload.interface';
@@ -28,17 +30,65 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: AppConfigService,
+    private readonly emailService: EmailService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: LoggerService,
   ) {}
 
   
-  async register(dto: RegisterDto): Promise<AuthResponseDto> {
+  async register(dto: RegisterDto): Promise<RegisterResponseDto> {
     const usuario = await this.usersService.create(dto);
     this.logger.log(`Novo usuário cadastrado: ${usuario.email}`, 'AuthService');
+
+    if (usuario.tokenVerificacaoEmail) {
+      await this.emailService.enviarVerificacaoEmail(
+        usuario.email,
+        usuario.nome,
+        usuario.tokenVerificacaoEmail,
+      );
+    }
+
+    return { email: usuario.email, emailVerificado: usuario.emailVerificado };
+  }
+
+  async verificarEmail(token: string): Promise<AuthResponseDto> {
+    const usuario = await this.usersService.verificarEmail(token);
+    this.logger.log(`E-mail verificado: ${usuario.email}`, 'AuthService');
     return this.gerarRespostaAutenticacao(usuario);
   }
 
-  
+  async reenviarVerificacao(email: string): Promise<void> {
+    const usuario = await this.usersService.gerarNovoTokenVerificacao(email);
+    if (usuario.tokenVerificacaoEmail) {
+      await this.emailService.enviarVerificacaoEmail(
+        usuario.email,
+        usuario.nome,
+        usuario.tokenVerificacaoEmail,
+      );
+    }
+  }
+
+  async esqueciSenha(email: string): Promise<void> {
+    const usuario = await this.usersService.gerarTokenResetSenha(email);
+    if (usuario && usuario.tokenResetSenha) {
+      await this.emailService.enviarRedefinicaoSenha(
+        usuario.email,
+        usuario.nome,
+        usuario.tokenResetSenha,
+      );
+    }
+  }
+
+  async redefinirSenha(token: string, novaSenha: string): Promise<void> {
+    await this.usersService.redefinirSenhaComToken(token, novaSenha);
+  }
+
+  async loginComGoogle(dados: { email: string; nome: string }): Promise<AuthResponseDto> {
+    const usuario = await this.usersService.encontrarOuCriarComGoogle(dados);
+    await this.usersService.atualizarUltimoLogin(usuario.id);
+    this.logger.log(`Login com Google: ${usuario.email}`, 'AuthService');
+    return this.gerarRespostaAutenticacao(usuario);
+  }
+
   async login(dto: LoginDto): Promise<AuthResponseDto> {
     const usuario = await this.usersService.findByEmail(dto.email);
 
@@ -49,6 +99,12 @@ export class AuthService {
     const senhaValida = await bcrypt.compare(dto.senha, usuario.senhaHash);
     if (!senhaValida) {
       throw new UnauthorizedException('E-mail ou senha inválidos.');
+    }
+
+    if (!usuario.emailVerificado) {
+      throw new UnauthorizedException(
+        'Seu e-mail ainda não foi verificado. Confira sua caixa de entrada ou solicite um novo link de verificação.',
+      );
     }
 
     await this.usersService.atualizarUltimoLogin(usuario.id);

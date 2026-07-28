@@ -12,8 +12,11 @@ const CST_PIS_COFINS_VALIDOS = new Set([
   '56', '60', '61', '62', '63', '64', '65', '66', '67', '70', '71', '72', '73', '74', '75', '98', '99',
 ]);
 
+const TIPOS_SEM_ITENS_PADRAO_NFE = new Set(['CTE', 'MDFE', 'NFSE']);
+
 function regraCfopIncompativel(documento: DocumentoParaAnalise): ErroFiscal[] {
   const erros: ErroFiscal[] = [];
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return erros;
   if (!documento.uf || !documento.destinatarioUf) return erros;
 
   const operacaoInterna = documento.uf === documento.destinatarioUf;
@@ -52,6 +55,7 @@ function regraCfopIncompativel(documento: DocumentoParaAnalise): ErroFiscal[] {
 
 function regraCstInvalido(documento: DocumentoParaAnalise): ErroFiscal[] {
   const erros: ErroFiscal[] = [];
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return erros;
 
   documento.itens.forEach((item) => {
     if (item.cstIcms && !CST_ICMS_VALIDOS.has(item.cstIcms)) {
@@ -93,7 +97,7 @@ function regraCstInvalido(documento: DocumentoParaAnalise): ErroFiscal[] {
 }
 
 function regraNcmVazio(documento: DocumentoParaAnalise): ErroFiscal[] {
-  if (documento.tipoDocumento === 'CTE') return [];
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
 
   return documento.itens
     .filter((item) => !item.ncm)
@@ -109,6 +113,7 @@ function regraNcmVazio(documento: DocumentoParaAnalise): ErroFiscal[] {
 }
 
 function regraProdutoSemTributacao(documento: DocumentoParaAnalise): ErroFiscal[] {
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
   return documento.itens
     .filter((item) => !item.cstIcms && !item.cstPis && !item.cstCofins)
     .map((item): ErroFiscal => ({
@@ -122,6 +127,7 @@ function regraProdutoSemTributacao(documento: DocumentoParaAnalise): ErroFiscal[
 }
 
 function regraIcmsZerado(documento: DocumentoParaAnalise): ErroFiscal[] {
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
   const cstsComIcmsEsperado = new Set(['00', '10', '20', '70', '90']);
 
   return documento.itens
@@ -137,6 +143,7 @@ function regraIcmsZerado(documento: DocumentoParaAnalise): ErroFiscal[] {
 }
 
 function regraIpiInconsistente(documento: DocumentoParaAnalise): ErroFiscal[] {
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
   return documento.itens
     .filter((item) => item.vIPI !== undefined && item.vIPI < 0)
     .map((item): ErroFiscal => ({
@@ -150,6 +157,7 @@ function regraIpiInconsistente(documento: DocumentoParaAnalise): ErroFiscal[] {
 }
 
 function regraPisInconsistente(documento: DocumentoParaAnalise): ErroFiscal[] {
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
   return documento.itens
     .filter((item) => item.cstPis === '01' && item.vProd && item.vProd > 0 && !item.vPIS)
     .map((item): ErroFiscal => ({
@@ -163,6 +171,7 @@ function regraPisInconsistente(documento: DocumentoParaAnalise): ErroFiscal[] {
 }
 
 function regraCofinsInconsistente(documento: DocumentoParaAnalise): ErroFiscal[] {
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
   return documento.itens
     .filter((item) => item.cstCofins === '01' && item.vProd && item.vProd > 0 && !item.vCOFINS)
     .map((item): ErroFiscal => ({
@@ -176,6 +185,7 @@ function regraCofinsInconsistente(documento: DocumentoParaAnalise): ErroFiscal[]
 }
 
 function regraProdutoSemCfop(documento: DocumentoParaAnalise): ErroFiscal[] {
+  if (TIPOS_SEM_ITENS_PADRAO_NFE.has(documento.tipoDocumento)) return [];
   return documento.itens
     .filter((item) => !item.cfop)
     .map((item): ErroFiscal => ({

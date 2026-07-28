@@ -86,6 +86,30 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   ALLOWED_ORIGINS?: string;
+
+  @IsOptional()
+  @IsString()
+  FRONTEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CALLBACK_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  ANTHROPIC_API_KEY?: string;
+
+  @IsOptional()
+  @IsNumber()
+  LIMITE_MENSAGENS_IA_MES?: number;
 }
 
 

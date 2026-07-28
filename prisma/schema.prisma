@@ -20,10 +20,15 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  iaUsosMesAtual      Int     @default(0)
+  iaUsosMesReferencia String?
+
   users           User[]
   fiscalDocuments FiscalDocument[]
   clientes        Cliente[]
   cobrancas       Cobranca[]
+  lancamentosFiscais LancamentoFiscal[]
+  apuracoes           Apuracao[]
 
   @@map("companies")
 }
@@ -42,10 +47,18 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  emailVerificado           Boolean   @default(false)
+  tokenVerificacaoEmail     String?   @unique
+  tokenVerificacaoExpiraEm  DateTime?
+  tokenResetSenha           String?   @unique
+  tokenResetSenhaExpiraEm   DateTime?
+
   company       Company        @relation(fields: [companyId], references: [id])
   userRoles     UserRole[]
   refreshTokens RefreshToken[]
   fiscalDocuments FiscalDocument[]
+  lancamentosFiscais LancamentoFiscal[]
+  apuracoes           Apuracao[]
 
   @@map("users")
 }
@@ -112,6 +125,7 @@ model FiscalDocument {
   company    Company @relation(fields: [companyId], references: [id])
   uploadedBy User    @relation(fields: [uploadedById], references: [id])
   analises   FiscalAnalysis[]
+  lancamentos LancamentoFiscal[]
 
   @@map("fiscal_documents")
 }
@@ -206,4 +220,48 @@ model BillingHistory {
   cobranca Cobranca @relation(fields: [cobrancaId], references: [id], onDelete: Cascade)
 
   @@map("billing_history")
+}
+
+model LancamentoFiscal {
+  id                String    @id @default(uuid())
+  companyId         String
+  criadoPorId       String
+  documentoFiscalId String?
+  tipo              String
+  naturezaOperacao  String
+  dataCompetencia   DateTime
+  descricao         String
+  valor             Float
+  observacoes       String?
+  explicacaoIA      String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company         Company         @relation(fields: [companyId], references: [id])
+  criadoPor       User            @relation(fields: [criadoPorId], references: [id])
+  documentoFiscal FiscalDocument? @relation(fields: [documentoFiscalId], references: [id])
+
+  @@map("lancamentos_fiscais")
+}
+
+model Apuracao {
+  id                   String    @id @default(uuid())
+  companyId            String
+  criadoPorId          String
+  competencia          String
+  regimeTributario     String
+  receitaBrutaPeriodo  Float?
+  totalDebitos         Float     @default(0)
+  totalCreditos        Float     @default(0)
+  valorApurado         Float     @default(0)
+  detalhamento         Json?
+  explicacaoIA         String?
+  status               String    @default("CALCULADO")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  company   Company @relation(fields: [companyId], references: [id])
+  criadoPor User     @relation(fields: [criadoPorId], references: [id])
+
+  @@map("apuracoes")
 }

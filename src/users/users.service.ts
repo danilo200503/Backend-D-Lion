@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { PrismaService } from '../database/prisma.service';
 import { RegisterDto } from '../auth/dto/register.dto';
@@ -57,6 +58,8 @@ export class UsersService {
     }
 
     const senhaHash = await bcrypt.hash(registerDto.senha, BCRYPT_SALT_ROUNDS);
+    const tokenVerificacaoEmail = randomUUID();
+    const tokenVerificacaoExpiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const role = await this.prisma.role.findUnique({
       where: { nome: nomeRole },
@@ -76,6 +79,9 @@ export class UsersService {
         companyId: empresaId,
         cargo: registerDto.cargo,
         telefone: registerDto.telefone,
+        emailVerificado: false,
+        tokenVerificacaoEmail,
+        tokenVerificacaoExpiraEm,
         userRoles: {
           create: { roleId: role.id },
         },
@@ -197,5 +203,143 @@ export class UsersService {
     dto.permissoes = usuario.userRoles.map((userRole) => userRole.role.nome);
     dto.createdAt = usuario.createdAt;
     return dto;
+  }
+
+  async verificarEmail(token: string): Promise<UserWithRoles> {
+    const usuario = await this.prisma.user.findUnique({
+      where: { tokenVerificacaoEmail: token },
+      include: { userRoles: { include: { role: true } }, company: true },
+    });
+
+    if (!usuario) {
+      throw new BadRequestException('Token de verificação inválido.');
+    }
+
+    if (usuario.tokenVerificacaoExpiraEm && usuario.tokenVerificacaoExpiraEm < new Date()) {
+      throw new BadRequestException('Token de verificação expirado. Solicite um novo e-mail de confirmação.');
+    }
+
+    return this.prisma.user.update({
+      where: { id: usuario.id },
+      data: {
+        emailVerificado: true,
+        tokenVerificacaoEmail: null,
+        tokenVerificacaoExpiraEm: null,
+      },
+      include: { userRoles: { include: { role: true } }, company: true },
+    });
+  }
+
+  async gerarNovoTokenVerificacao(email: string): Promise<UserWithRoles> {
+    const usuario = await this.findByEmail(email);
+
+    if (!usuario) {
+      throw new NotFoundException('Nenhum usuário encontrado com este e-mail.');
+    }
+
+    if (usuario.emailVerificado) {
+      throw new BadRequestException('Este e-mail já está verificado.');
+    }
+
+    const tokenVerificacaoEmail = randomUUID();
+    const tokenVerificacaoExpiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    return this.prisma.user.update({
+      where: { id: usuario.id },
+      data: { tokenVerificacaoEmail, tokenVerificacaoExpiraEm },
+      include: { userRoles: { include: { role: true } }, company: true },
+    });
+  }
+
+  async gerarTokenResetSenha(email: string): Promise<UserWithRoles | null> {
+    const usuario = await this.findByEmail(email);
+
+    if (!usuario) {
+      return null;
+    }
+
+    const tokenResetSenha = randomUUID();
+    const tokenResetSenhaExpiraEm = new Date(Date.now() + 60 * 60 * 1000);
+
+    return this.prisma.user.update({
+      where: { id: usuario.id },
+      data: { tokenResetSenha, tokenResetSenhaExpiraEm },
+      include: { userRoles: { include: { role: true } }, company: true },
+    });
+  }
+
+  async redefinirSenhaComToken(token: string, novaSenha: string): Promise<void> {
+    const usuario = await this.prisma.user.findUnique({
+      where: { tokenResetSenha: token },
+    });
+
+    if (!usuario) {
+      throw new BadRequestException('Token de redefinição inválido.');
+    }
+
+    if (usuario.tokenResetSenhaExpiraEm && usuario.tokenResetSenhaExpiraEm < new Date()) {
+      throw new BadRequestException('Token de redefinição expirado. Solicite uma nova recuperação de senha.');
+    }
+
+    const senhaHash = await bcrypt.hash(novaSenha, BCRYPT_SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { id: usuario.id },
+      data: {
+        senhaHash,
+        tokenResetSenha: null,
+        tokenResetSenhaExpiraEm: null,
+      },
+    });
+  }
+
+  async encontrarOuCriarComGoogle(dados: { email: string; nome: string }): Promise<UserWithRoles> {
+    const usuarioExistente = await this.findByEmail(dados.email);
+
+    if (usuarioExistente) {
+      if (!usuarioExistente.emailVerificado) {
+        await this.prisma.user.update({
+          where: { id: usuarioExistente.id },
+          data: { emailVerificado: true },
+        });
+        return this.findById(usuarioExistente.id);
+      }
+      return usuarioExistente;
+    }
+
+    const senhaAleatoriaHash = await bcrypt.hash(randomUUID(), BCRYPT_SALT_ROUNDS);
+
+    const novaEmpresa = await this.prisma.company.create({
+      data: {
+        name: `${dados.nome} - Empresa`,
+        cnpj: this.gerarCnpjPlaceholder(),
+      },
+    });
+
+    const roleAdministrador = await this.prisma.role.findUnique({
+      where: { nome: 'Administrador' },
+    });
+
+    if (!roleAdministrador) {
+      throw new BadRequestException(
+        'Role padrão de cadastro não encontrada. Execute o seed do banco de dados.',
+      );
+    }
+
+    const usuario = await this.prisma.user.create({
+      data: {
+        nome: dados.nome,
+        email: dados.email,
+        senhaHash: senhaAleatoriaHash,
+        companyId: novaEmpresa.id,
+        emailVerificado: true,
+        userRoles: {
+          create: { roleId: roleAdministrador.id },
+        },
+      },
+      include: { userRoles: { include: { role: true } }, company: true },
+    });
+
+    return usuario;
   }
 }

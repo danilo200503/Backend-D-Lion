@@ -36,21 +36,26 @@ export class FiscalController {
   @Post('upload-xml')
   @UseInterceptors(FileInterceptor('arquivo', fiscalXmlUploadOptions))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Envia um arquivo XML de NFe para processamento' })
-  @ApiResponse({ status: 201, description: 'Documento recebido e processado.', type: FiscalDocumentResponseDto })
+  @ApiOperation({ summary: 'Envia um arquivo XML (pode conter uma ou várias notas agrupadas)' })
+  @ApiResponse({ status: 201, description: 'Documento(s) recebido(s) e processado(s).', type: [FiscalDocumentResponseDto] })
   @ApiResponse({ status: 400, description: 'Arquivo ausente ou em formato inválido.' })
   async uploadXml(
     @CurrentUser() currentUser: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
-  ): Promise<ControllerResponse<FiscalDocumentResponseDto>> {
+  ): Promise<ControllerResponse<FiscalDocumentResponseDto[]>> {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo XML foi enviado. Utilize o campo "arquivo".');
     }
 
     const usuario = await this.usersService.findById(currentUser.id);
-    const documento = await this.fiscalService.processarUpload(usuario.companyId, usuario.id, file);
+    const documentos = await this.fiscalService.processarUpload(usuario.companyId, usuario.id, file);
 
-    return buildResponse(documento as unknown as FiscalDocumentResponseDto, 'Documento fiscal processado com sucesso.');
+    const mensagem =
+      documentos.length > 1
+        ? `${documentos.length} notas encontradas no arquivo e processadas com sucesso.`
+        : 'Documento fiscal processado com sucesso.';
+
+    return buildResponse(documentos as unknown as FiscalDocumentResponseDto[], mensagem);
   }
 
   @Get()

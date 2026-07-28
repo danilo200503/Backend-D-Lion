@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../database/prisma.service';
 import { CreateCobrancaDto } from './dto/create-cobranca.dto';
 import { UpdateCobrancaDto } from './dto/update-cobranca.dto';
-import { EmailService } from './email.service';
+import { EmailService } from '../email/email.service';
 import { montarLinkWhatsapp, montarMensagemCobranca } from './utils/whatsapp-link.util';
 
 interface FiltrosCobranca {

@@ -98,6 +98,41 @@ export class AppConfigService {
       .filter(Boolean);
   }
 
+  get frontendUrl(): string {
+    return this.configService.get<string>('FRONTEND_URL', 'http://localhost:4200');
+  }
+
+  get googleClientId(): string | undefined {
+    return this.configService.get<string>('GOOGLE_CLIENT_ID');
+  }
+
+  get googleClientSecret(): string | undefined {
+    return this.configService.get<string>('GOOGLE_CLIENT_SECRET');
+  }
+
+  get googleCallbackUrl(): string {
+    return this.configService.get<string>(
+      'GOOGLE_CALLBACK_URL',
+      'http://localhost:3001/api/v1/auth/google/callback',
+    );
+  }
+
+  get googleConfigured(): boolean {
+    return Boolean(this.googleClientId && this.googleClientSecret);
+  }
+
+  get anthropicApiKey(): string | undefined {
+    return this.configService.get<string>('ANTHROPIC_API_KEY');
+  }
+
+  get anthropicConfigured(): boolean {
+    return Boolean(this.anthropicApiKey);
+  }
+
+  get limiteMensagensIaPorPlano(): number {
+    return this.configService.get<number>('LIMITE_MENSAGENS_IA_MES', 30);
+  }
+
   
   private getOrThrow(key: string): string {
     const value = this.configService.get<string>(key);

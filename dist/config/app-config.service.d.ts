@@ -1,0 +1,32 @@
+import { ConfigService } from '@nestjs/config';
+export declare class AppConfigService {
+    private readonly configService;
+    constructor(configService: ConfigService);
+    get port(): number;
+    get nodeEnv(): string;
+    get isProduction(): boolean;
+    get databaseUrl(): string;
+    get jwtSecret(): string;
+    get jwtExpiresIn(): string;
+    get jwtRefreshSecret(): string;
+    get jwtRefreshExpiresIn(): string;
+    get openAiApiKey(): string | undefined;
+    get whatsappToken(): string | undefined;
+    get whatsappApiUrl(): string | undefined;
+    get whatsappPhoneId(): string | undefined;
+    get redisUrl(): string | undefined;
+    get smtpHost(): string | undefined;
+    get smtpPort(): number;
+    get smtpUser(): string | undefined;
+    get smtpPass(): string | undefined;
+    get smtpFrom(): string;
+    get smtpSecure(): boolean;
+    get smtpConfigured(): boolean;
+    get allowedOrigins(): string[];
+    get frontendUrl(): string;
+    get googleClientId(): string | undefined;
+    get googleClientSecret(): string | undefined;
+    get googleCallbackUrl(): string;
+    get googleConfigured(): boolean;
+    private getOrThrow;
+}

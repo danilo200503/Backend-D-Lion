@@ -9,9 +9,12 @@ import { CompanyModule } from './company/company.module';
 import { ConfigModule } from './config/config.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
+import { EmailModule } from './email/email.module';
 import { FiscalModule } from './fiscal/fiscal.module';
 import { LoggerModule } from './logger/logger.module';
 import { UsersModule } from './users/users.module';
+import { LancamentosModule } from './lancamentos/lancamentos.module';
+import { ApuracaoModule } from './apuracao/apuracao.module';
 
 
 @Module({
@@ -19,6 +22,7 @@ import { UsersModule } from './users/users.module';
     ConfigModule,
     LoggerModule,
     DatabaseModule,
+    EmailModule,
     CommonModule,
     AuthModule,
     UsersModule,
@@ -28,6 +32,8 @@ import { UsersModule } from './users/users.module';
     AiModule,
     ClientesModule,
     BillingModule,
+    LancamentosModule,
+    ApuracaoModule,
   ],
   controllers: [AppController],
 })

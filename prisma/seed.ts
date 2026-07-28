@@ -59,6 +59,7 @@ async function seedAdminUser(companyId: string): Promise<void> {
       companyId,
       cargo: 'Administrador do Sistema',
       ativo: true,
+      emailVerificado: true,
     },
   });
 

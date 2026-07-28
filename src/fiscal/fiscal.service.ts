@@ -10,60 +10,65 @@ export class FiscalService {
   constructor(private readonly prisma: PrismaService) {}
 
   async processarUpload(companyId: string, uploadedById: string, file: Express.Multer.File) {
-    const documento = await this.prisma.fiscalDocument.create({
-      data: {
-        companyId,
-        uploadedById,
-        nomeArquivo: file.originalname,
-        caminhoArquivo: file.path,
-        status: 'PROCESSANDO',
-      },
-    });
-
-    
-    
-    
     try {
       const conteudo = await readFile(file.path, 'utf-8');
-      const dados = extrairDadosNfe(conteudo);
+      const listaDeDados = extrairDadosNfe(conteudo);
 
-      return await this.prisma.fiscalDocument.update({
-        where: { id: documento.id },
-        data: {
-          status: 'CONCLUIDO',
-          tipoDocumento: dados.tipoDocumento,
-          empresa: dados.empresa,
-          cnpj: dados.cnpj,
-          numeroNota: dados.numeroNota,
-          serie: dados.serie,
-          chaveAcesso: dados.chaveAcesso,
-          dataEmissao: dados.dataEmissao ? new Date(dados.dataEmissao) : undefined,
-          destinatario: dados.destinatario,
-          destinatarioCnpj: dados.destinatarioCnpj,
-          destinatarioUf: dados.destinatarioUf,
-          municipio: dados.municipio,
-          uf: dados.uf,
-          indicadorIE: dados.indicadorIE,
-          valorTotal: dados.valorTotal,
-          impostos: dados.impostos as unknown as object,
-          itens: dados.itens as unknown as object,
-          alertas: dados.alertas as unknown as object,
-          erros: [],
-          recomendacoes: [],
-        },
-      });
+      const documentos = [];
+      for (const [indice, dados] of listaDeDados.entries()) {
+        const nomeArquivo =
+          listaDeDados.length > 1 ? `${file.originalname} (nota ${indice + 1} de ${listaDeDados.length})` : file.originalname;
+
+        const documento = await this.prisma.fiscalDocument.create({
+          data: {
+            companyId,
+            uploadedById,
+            nomeArquivo,
+            caminhoArquivo: file.path,
+            status: 'CONCLUIDO',
+            tipoDocumento: dados.tipoDocumento,
+            empresa: dados.empresa,
+            cnpj: dados.cnpj,
+            numeroNota: dados.numeroNota,
+            serie: dados.serie,
+            chaveAcesso: dados.chaveAcesso,
+            dataEmissao: dados.dataEmissao ? new Date(dados.dataEmissao) : undefined,
+            destinatario: dados.destinatario,
+            destinatarioCnpj: dados.destinatarioCnpj,
+            destinatarioUf: dados.destinatarioUf,
+            municipio: dados.municipio,
+            uf: dados.uf,
+            indicadorIE: dados.indicadorIE,
+            valorTotal: dados.valorTotal,
+            impostos: dados.impostos as unknown as object,
+            itens: dados.itens as unknown as object,
+            alertas: dados.alertas as unknown as object,
+            erros: [],
+            recomendacoes: [],
+          },
+        });
+
+        documentos.push(documento);
+      }
+
+      return documentos;
     } catch (error) {
       const mensagem = error instanceof Error ? error.message : 'Falha desconhecida ao processar o XML.';
       this.logger.warn(`Falha ao processar XML fiscal ${file.originalname}: ${mensagem}`);
 
-      return this.prisma.fiscalDocument.update({
-        where: { id: documento.id },
+      const documento = await this.prisma.fiscalDocument.create({
         data: {
+          companyId,
+          uploadedById,
+          nomeArquivo: file.originalname,
+          caminhoArquivo: file.path,
           status: 'ERRO',
           mensagemErro: mensagem,
           erros: [mensagem] as unknown as object,
         },
       });
+
+      return [documento];
     }
   }
 

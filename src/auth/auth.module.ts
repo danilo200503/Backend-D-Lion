@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 
 @Module({
@@ -31,6 +32,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   providers: [
     AuthService,
     JwtStrategy,
+    GoogleStrategy,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
