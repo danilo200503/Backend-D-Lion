@@ -5,6 +5,11 @@ export const TIPOS_LANCAMENTO = ['NOTA', 'CUPOM', 'DANFE', 'OUTRO'] as const;
 export const NATUREZAS_OPERACAO = ['ENTRADA', 'SAIDA'] as const;
 
 export class CreateLancamentoDto {
+  @ApiProperty({ required: false, description: 'ID do cliente ao qual este lançamento se refere' })
+  @IsOptional()
+  @IsUUID()
+  clienteId?: string;
+
   @ApiProperty({ enum: TIPOS_LANCAMENTO, example: 'NOTA' })
   @IsIn(TIPOS_LANCAMENTO)
   tipo: string;

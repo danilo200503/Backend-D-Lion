@@ -29,6 +29,7 @@ model Company {
   cobrancas       Cobranca[]
   lancamentosFiscais LancamentoFiscal[]
   apuracoes           Apuracao[]
+  planosTributarios   PlanoTributario[]
 
   @@map("companies")
 }
@@ -59,6 +60,7 @@ model User {
   fiscalDocuments FiscalDocument[]
   lancamentosFiscais LancamentoFiscal[]
   apuracoes           Apuracao[]
+  planosTributarios   PlanoTributario[]
 
   @@map("users")
 }
@@ -186,6 +188,9 @@ model Cliente {
 
   company    Company    @relation(fields: [companyId], references: [id])
   cobrancas  Cobranca[]
+  apuracoes           Apuracao[]
+  lancamentosFiscais  LancamentoFiscal[]
+  planosTributarios   PlanoTributario[]
 
   @@map("clientes")
 }
@@ -227,6 +232,7 @@ model LancamentoFiscal {
   companyId         String
   criadoPorId       String
   documentoFiscalId String?
+  clienteId         String?
   tipo              String
   naturezaOperacao  String
   dataCompetencia   DateTime
@@ -240,6 +246,7 @@ model LancamentoFiscal {
   company         Company         @relation(fields: [companyId], references: [id])
   criadoPor       User            @relation(fields: [criadoPorId], references: [id])
   documentoFiscal FiscalDocument? @relation(fields: [documentoFiscalId], references: [id])
+  cliente         Cliente?        @relation(fields: [clienteId], references: [id])
 
   @@map("lancamentos_fiscais")
 }
@@ -248,6 +255,7 @@ model Apuracao {
   id                   String    @id @default(uuid())
   companyId            String
   criadoPorId          String
+  clienteId            String?
   competencia          String
   regimeTributario     String
   receitaBrutaPeriodo  Float?
@@ -262,6 +270,23 @@ model Apuracao {
 
   company   Company @relation(fields: [companyId], references: [id])
   criadoPor User     @relation(fields: [criadoPorId], references: [id])
+  cliente   Cliente? @relation(fields: [clienteId], references: [id])
 
   @@map("apuracoes")
+}
+
+model PlanoTributario {
+  id           String   @id @default(uuid())
+  companyId    String
+  criadoPorId  String
+  clienteId    String
+  conteudo     String
+  resumoDados  Json?
+  createdAt    DateTime @default(now())
+
+  company   Company @relation(fields: [companyId], references: [id])
+  criadoPor User    @relation(fields: [criadoPorId], references: [id])
+  cliente   Cliente @relation(fields: [clienteId], references: [id])
+
+  @@map("planos_tributarios")
 }

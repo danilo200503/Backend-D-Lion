@@ -15,6 +15,7 @@ import { LoggerModule } from './logger/logger.module';
 import { UsersModule } from './users/users.module';
 import { LancamentosModule } from './lancamentos/lancamentos.module';
 import { ApuracaoModule } from './apuracao/apuracao.module';
+import { PlanoTributarioModule } from './plano-tributario/plano-tributario.module';
 
 
 @Module({
@@ -34,6 +35,7 @@ import { ApuracaoModule } from './apuracao/apuracao.module';
     BillingModule,
     LancamentosModule,
     ApuracaoModule,
+    PlanoTributarioModule,
   ],
   controllers: [AppController],
 })

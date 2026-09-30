@@ -58,8 +58,6 @@ export class UsersService {
     }
 
     const senhaHash = await bcrypt.hash(registerDto.senha, BCRYPT_SALT_ROUNDS);
-    const tokenVerificacaoEmail = randomUUID();
-    const tokenVerificacaoExpiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const role = await this.prisma.role.findUnique({
       where: { nome: nomeRole },
@@ -79,9 +77,7 @@ export class UsersService {
         companyId: empresaId,
         cargo: registerDto.cargo,
         telefone: registerDto.telefone,
-        emailVerificado: false,
-        tokenVerificacaoEmail,
-        tokenVerificacaoExpiraEm,
+        emailVerificado: true,
         userRoles: {
           create: { roleId: role.id },
         },

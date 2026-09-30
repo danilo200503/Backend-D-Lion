@@ -1,9 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNumber, IsOptional, IsPositive, IsString, Matches } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Matches } from 'class-validator';
 
 export const REGIMES_TRIBUTARIOS = ['SIMPLES_NACIONAL', 'LUCRO_PRESUMIDO', 'LUCRO_REAL'] as const;
 
 export class CreateApuracaoDto {
+  @ApiProperty({ required: false, description: 'ID do cliente ao qual esta apuração se refere' })
+  @IsOptional()
+  @IsUUID()
+  clienteId?: string;
+
   @ApiProperty({ example: '2026-07', description: 'Competência no formato AAAA-MM' })
   @IsString()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'Informe a competência no formato AAAA-MM.' })

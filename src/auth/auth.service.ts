@@ -35,19 +35,10 @@ export class AuthService {
   ) {}
 
   
-  async register(dto: RegisterDto): Promise<RegisterResponseDto> {
+  async register(dto: RegisterDto): Promise<AuthResponseDto> {
     const usuario = await this.usersService.create(dto);
     this.logger.log(`Novo usuário cadastrado: ${usuario.email}`, 'AuthService');
-
-    if (usuario.tokenVerificacaoEmail) {
-      this.emailService
-        .enviarVerificacaoEmail(usuario.email, usuario.nome, usuario.tokenVerificacaoEmail)
-        .catch((erro: Error) =>
-          this.logger.warn(`Falha ao enviar e-mail de verificação para ${usuario.email}: ${erro.message}`),
-        );
-    }
-
-    return { email: usuario.email, emailVerificado: usuario.emailVerificado };
+    return this.gerarRespostaAutenticacao(usuario);
   }
 
   async verificarEmail(token: string): Promise<AuthResponseDto> {
@@ -99,12 +90,6 @@ export class AuthService {
     const senhaValida = await bcrypt.compare(dto.senha, usuario.senhaHash);
     if (!senhaValida) {
       throw new UnauthorizedException('E-mail ou senha inválidos.');
-    }
-
-    if (!usuario.emailVerificado) {
-      throw new UnauthorizedException(
-        'Seu e-mail ainda não foi verificado. Confira sua caixa de entrada ou solicite um novo link de verificação.',
-      );
     }
 
     await this.usersService.atualizarUltimoLogin(usuario.id);

@@ -40,6 +40,7 @@ export class ApuracaoService {
       data: {
         companyId,
         criadoPorId,
+        clienteId: dto.clienteId,
         competencia: dto.competencia,
         regimeTributario: dto.regimeTributario,
         receitaBrutaPeriodo: dto.receitaBrutaPeriodo,
@@ -71,6 +72,7 @@ export class ApuracaoService {
       data: {
         companyId,
         criadoPorId,
+        clienteId: dto.clienteId,
         competencia: dto.competencia,
         regimeTributario: dto.regimeTributario,
         receitaBrutaPeriodo: dto.receitaBrutaPeriodo,
@@ -88,12 +90,16 @@ export class ApuracaoService {
   async listar(companyId: string) {
     return this.prisma.apuracao.findMany({
       where: { companyId },
+      include: { cliente: true },
       orderBy: { competencia: 'desc' },
     });
   }
 
   async buscarPorId(companyId: string, id: string) {
-    const apuracao = await this.prisma.apuracao.findFirst({ where: { id, companyId } });
+    const apuracao = await this.prisma.apuracao.findFirst({
+      where: { id, companyId },
+      include: { cliente: true },
+    });
 
     if (!apuracao) {
       throw new NotFoundException('Apuração não encontrada.');

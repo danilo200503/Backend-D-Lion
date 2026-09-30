@@ -5,7 +5,6 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { RegisterResponseDto } from './dto/register-response.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -34,12 +33,12 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Cadastra um novo usuário e envia e-mail de verificação' })
-  @ApiResponse({ status: 201, description: 'Usuário cadastrado. E-mail de verificação enviado.', type: RegisterResponseDto })
+  @ApiOperation({ summary: 'Cadastra um novo usuário e já autentica' })
+  @ApiResponse({ status: 201, description: 'Usuário cadastrado com sucesso.', type: AuthResponseDto })
   @ApiResponse({ status: 409, description: 'E-mail já cadastrado.' })
-  async register(@Body() dto: RegisterDto): Promise<ControllerResponse<RegisterResponseDto>> {
+  async register(@Body() dto: RegisterDto): Promise<ControllerResponse<AuthResponseDto>> {
     const resultado = await this.authService.register(dto);
-    return buildResponse(resultado, 'Cadastro realizado. Verifique seu e-mail para ativar a conta.');
+    return buildResponse(resultado, 'Cadastro realizado com sucesso.');
   }
 
   @Public()

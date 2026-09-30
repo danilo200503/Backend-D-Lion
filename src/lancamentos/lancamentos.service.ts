@@ -27,6 +27,7 @@ export class LancamentosService {
       data: {
         companyId,
         criadoPorId,
+        clienteId: dto.clienteId,
         tipo: dto.tipo,
         naturezaOperacao: dto.naturezaOperacao,
         dataCompetencia: new Date(dto.dataCompetencia),
@@ -46,7 +47,7 @@ export class LancamentosService {
         ...(filtros?.tipo ? { tipo: filtros.tipo } : {}),
         ...(filtros?.naturezaOperacao ? { naturezaOperacao: filtros.naturezaOperacao } : {}),
       },
-      include: { documentoFiscal: true },
+      include: { documentoFiscal: true, cliente: true },
       orderBy: { dataCompetencia: 'desc' },
     });
   }
@@ -54,7 +55,7 @@ export class LancamentosService {
   async buscarPorId(companyId: string, id: string) {
     const lancamento = await this.prisma.lancamentoFiscal.findFirst({
       where: { id, companyId },
-      include: { documentoFiscal: true },
+      include: { documentoFiscal: true, cliente: true },
     });
 
     if (!lancamento) {

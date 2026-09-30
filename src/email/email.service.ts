@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 import { AppConfigService } from '../config/app-config.service';
 
 interface DadosEmailCobranca {
@@ -13,8 +14,24 @@ interface DadosEmailCobranca {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
+  private transporter: nodemailer.Transporter | null = null;
 
-  constructor(private readonly configService: AppConfigService) {}
+  constructor(private readonly configService: AppConfigService) {
+    if (this.configService.smtpConfigured) {
+      this.transporter = nodemailer.createTransport({
+        host: this.configService.smtpHost,
+        port: this.configService.smtpPort,
+        secure: this.configService.smtpSecure,
+        auth: {
+          user: this.configService.smtpUser,
+          pass: this.configService.smtpPass,
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 8000,
+      });
+    }
+  }
 
   async enviarCobranca(dados: DadosEmailCobranca): Promise<void> {
     const assunto = `Cobrança — ${dados.descricao}`;
@@ -69,34 +86,19 @@ export class EmailService {
   }
 
   private async enviar(destinatario: string, assunto: string, html: string, tipo: string): Promise<void> {
-    const apiKey = this.configService.smtpPass;
-    const remetente = this.configService.smtpFrom;
-
-    if (!apiKey) {
+    if (!this.transporter) {
       this.logger.warn(
-        `Chave da Resend não configurada — simulando envio de e-mail de ${tipo} para ${destinatario} (assunto: "${assunto}").`,
+        `SMTP não configurado — simulando envio de e-mail de ${tipo} para ${destinatario} (assunto: "${assunto}").`,
       );
       return;
     }
 
-    const resposta = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: remetente,
-        to: [destinatario],
-        subject: assunto,
-        html,
-      }),
+    await this.transporter.sendMail({
+      from: this.configService.smtpFrom,
+      to: destinatario,
+      subject: assunto,
+      html,
     });
-
-    if (!resposta.ok) {
-      const corpoErro = await resposta.text();
-      throw new Error(`Falha ao enviar e-mail via Resend (${resposta.status}): ${corpoErro}`);
-    }
   }
 
   private montarTemplateBase(params: { titulo: string; corpo: string }): string {
